@@ -1,0 +1,441 @@
+<!-- CHARMER - Karaoke-style Karaoke Page (original structure + fondo de nombres) -->
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CHARMER — Karaoke (Stray Kids)</title>
+  <style>
+    :root{
+      --bg:#000;
+      --neon:#00ff88; /* green neon */
+      --muted: rgba(255,255,255,0.12);
+      --glass: rgba(255,255,255,0.03);
+      --font-sans: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    }
+    html,body{height:100%;margin:0;background:var(--bg);font-family:var(--font-sans);color:#fff}
+    /* intro */
+    .intro{
+      position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:50;background:linear-gradient(180deg, rgba(0,0,0,0.95), rgba(0,0,0,0.85));backdrop-filter:blur(6px)
+    }
+    .intro h1{font-size:clamp(36px,10vw,120px);letter-spacing:0.12em;text-align:center;color:var(--neon);opacity:0;transform:scale(0.9) translateY(8px);animation:introIn 1s forwards 0.2s}
+    @keyframes introIn{to{opacity:1;transform:scale(1) translateY(0)}}
+
+    /* container */
+    .app{position:relative;min-height:100vh;overflow:hidden;padding:30px}
+
+    /* background neon particles */
+    .particles{position:fixed;inset:0;z-index:0;pointer-events:none}
+    .particles .dot{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--neon);filter:blur(6px);opacity:0.18;transform:translate(-50%,-50%);animation:float 6s linear infinite}
+    @keyframes float{0%{transform:translateY(0) scale(1)}50%{transform:translateY(-40px) scale(1.2)}100%{transform:translateY(0) scale(1)}}
+
+    /* member names floating (original burst) */
+    .name-burst{position:fixed;inset:0;z-index:40;pointer-events:none}
+    .name-burst .name{position:absolute;padding:6px 10px;border-radius:999px;font-weight:700;opacity:0;transform:translate(-50%,-50%) scale(0.9);animation:pop 2200ms forwards;box-shadow:0 6px 18px rgba(0,0,0,0.6)}
+    @keyframes pop{0%{opacity:0;transform:translate(-50%,-50%) scale(0.6)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.2);filter:blur(2px)}}
+
+    /* main card */
+    .card{position:relative;z-index:10;max-width:900px;margin:0 auto;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:16px;padding:28px;box-shadow:0 10px 40px rgba(0,0,0,0.7);backdrop-filter: blur(4px)}
+
+    .header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+    .song-title{font-size:28px;letter-spacing:0.18em;color:var(--neon);font-weight:800}
+    .meta{margin-left:auto;color:var(--muted);font-weight:600}
+
+    .lyrics-wrap{position:relative;padding:26px;border-radius:12px;background:linear-gradient(180deg, rgba(0,0,0,0.45), rgba(0,0,0,0.6));min-height:320px;display:flex;align-items:center;justify-content:center}
+    .lyrics{width:100%;max-height:420px;overflow:hidden;display:flex;flex-direction:column;align-items:center;gap:12px}
+
+    .line{font-size:20px;color:rgba(255,255,255,0.28);transition:all 320ms ease;opacity:0.9}
+    .line.current{color:var(--neon);font-size:22px;font-weight:700;opacity:1;filter:drop-shadow(0 6px 14px rgba(0,255,136,0.12))}
+    .line.prev{color:rgba(255,255,255,0.18);transform:translateY(-4px)}
+
+    /* controls */
+    .controls{display:flex;gap:12px;align-items:center;margin-top:14px}
+    button.btn{background:var(--glass);border:1px solid rgba(255,255,255,0.04);padding:8px 12px;border-radius:10px;color:var(--neon);cursor:pointer;font-weight:700}
+    .small{padding:6px 10px;font-size:14px}
+
+    .speed{display:flex;align-items:center;gap:8px;color:var(--muted)}
+
+    /* footer hint */
+    .hint{margin-top:12px;color:var(--muted);font-size:13px}
+
+    /* responsive */
+    @media(max-width:640px){.card{padding:16px}.song-title{font-size:20px}.line{font-size:16px}.intro h1{font-size:40px}}
+
+    /* === NUEVO: nombres pequeños en el FONDO (detrás del contenido) === */
+    .floating-names { position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+    .floating-names .f-name {
+      position:absolute;
+      font-weight:700;
+      opacity:0;
+      font-size:0.9rem; /* tamaño pequeño */
+      white-space:nowrap;
+      transform:translate(-50%,-50%) scale(0.95);
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.6));
+      animation: ffade 5s ease-in-out forwards;
+    }
+    @keyframes ffade {
+      0% { opacity:0; transform:translate(-50%,-50%) translateY(6px) scale(0.95); }
+      15% { opacity:0.7; transform:translate(-50%,-50%) translateY(0) scale(1); }
+      85% { opacity:0.6; transform:translate(-50%,-50%) translateY(-8px) scale(1.02); }
+      100% { opacity:0; transform:translate(-50%,-50%) translateY(-18px) scale(1.05); }
+    }
+    /* ensure main card sits above floating names */
+    .app{z-index:10}
+  </style>
+</head>
+<body>
+  <div class="intro" id="intro">
+    <h1>CHARMER</h1>
+  </div>
+
+  <div class="particles" id="particles"></div>
+
+  <!-- nuevo: contenedor de nombres de fondo (aparecen DETRÁS del contenido) -->
+  <div class="floating-names" id="floatingNames"></div>
+
+  <!-- (se mantiene el nameBurst original por compatibilidad en caso lo quieras usar) -->
+  <div class="name-burst" id="nameBurst"></div>
+
+  <div class="app">
+    <div class="card">
+      <div class="header">
+        <div class="song-title">CHARMER</div>
+        <div class="meta">Stray Kids — ODDINARY</div>
+      </div>
+
+      <div class="lyrics-wrap">
+        <div class="lyrics" id="lyricsContainer"></div>
+      </div>
+
+      <div class="controls">
+        <button class="btn small" id="prevBtn">⟨ Prev</button>
+        <button class="btn" id="playBtn">Play ▶</button>
+        <button class="btn small" id="nextBtn">Next ⟩</button>
+
+        <div class="speed">
+          <label for="speedRange">Speed</label>
+          <input id="speedRange" type="range" min="0.5" max="2" step="0.1" value="1">
+          <span id="speedVal">1x</span>
+        </div>
+
+        <button class="btn small" id="recBtn">Record timings</button>
+        <button class="btn small" id="resetBtn">Reset timings</button>
+      </div>
+
+      <div class="hint">Tip: agrega <code>charmer.mp3</code> al mismo directorio para escuchar audio. Usa "Record timings" y pulsa la tecla <kbd>Space</kbd> para sincronizar manualmente.</div>
+    </div>
+  </div>
+
+  <!-- optional audio: place file charmer.mp3 next to this html -->
+  <audio id="audio" src="charmer.mp3" crossorigin="anonymous"></audio>
+
+  <script>
+    /**********************
+     * Lyrics (user provided). Keep each meaningful displayed line as array element.
+     **********************/
+    const lyrics = [
+"딱히 부족함이 없지",
+"I'm saucin', livin' in big Seoul city",
+"다소곳한 모습 없이",
+"따라 하는 쟤 빨래대처럼 널림",
+"우리가 하면 핑 다 쓰러지고 볼링",
+"솟은 어깨 마치 Everest (Everest)",
+"꺾일 리 없이 매일 상승세 (상승세)",
+"내가 뜨면 모두 고개들을 조심해",
+"매일 트렌드를 바꾸고 새로 고침 해 (cling, cling)",
+"Oh, you can't resist it",
+"Oh, 몸부림쳐 봐도",
+"Oh, 나의 주문에 춤춰",
+"넌 못 참아, I'm the charmer",
+"I'm the charmer",
+"Charmer, charmer, charmer",
+"삐리빠라삐리뱀",
+"삐리빠라삐리뱀",
+"삐리빠라삐리뱀",
+"Charmer, charmer, charmer, charmer",
+"통 큰 바지 손에 움켜쥐고 걸어, 걸어",
+"루즈핏의 박스티는 바람에 펄럭펄럭",
+"구구 년생 셀럽 거머리처럼 딱 붙지",
+"길거리의 비둘기도 구구대며 follow me",
+"길고양이도 넋이 나간 모습 미어캣",
+"머리에 피도 안 마른 젊은 피를 시험해",
+"신바람 나잖아 지금 이 feel이",
+"나를 알아봤다면 you're not silly",
+"Chitty, chitty bang 복잡한 규칙은 빼 ey",
+"Chippy, chippy bang 나사를 하나 더 빼 ey",
+"Chillin', chillin', yeah, every day I'm chillin', yeah",
+"자유로운 몸짓에 빠져들어 look at me",
+"Oh, you can't resist it",
+"Oh, 몸부림쳐 봐도",
+"Oh, 나의 주문에 춤춰",
+"넌 못 참아, I'm the charmer",
+"I'm the charmer",
+"Charmer, charmer, charmer",
+"삐리빠라삐리 뱀",
+"삐리빠라삐리 뱀",
+"삐리빠라삐리 뱀",
+"Charmer, charmer, charmer, charmer",
+"튀지 않으려 해도 눈에 띄어 right, I know",
+"Upload hashtag \"we'regoingup\", yeah, we flying around",
+"지나친 관심 oh, 쏠려 내게로 피곤해도",
+"It can't be helped, yeah-yeah",
+"너무 charmer, I'm the charmer",
+"너무 charmer, I'm the charmer, yes",
+"너무 charmer, I'm the charmer",
+"Charmer, charmer, charmer",
+"Charmer, yes",
+"별거 안 해도 빛이 나는 몸",
+"돌아버리고 별이 보이죠",
+"별거 안 해도 빛이 나는 몸",
+"Charmer, charmer, charmer, charmer",
+"넌 못 참아, I'm the charmer, yes"
+    ];
+
+    // Member names + colors assigned
+    const members = [
+      {name: 'Bang Chan', color: '#3db4ff'}, // azul eléctrico
+      {name: 'Lee Know', color: '#c0c6c9'}, // plateado
+      {name: 'Changbin', color: '#d44d4d'}, // rojo oscuro
+      {name: 'Hyunjin', color: '#ffd166'}, // dorado
+      {name: 'Han', color: '#6fff6f'}, // verde lima
+      {name: 'Felix', color: '#00d1d1'}, // cian brillante
+      {name: 'Seungmin', color: '#b58cff'}, // púrpura suave
+      {name: 'I.N', color: '#ff6fbf'}, // rosa neón
+      {name: 'Stray Kids', color: '#ffffff'} // blanco
+    ];
+
+    // Build lyrics into DOM
+    const container = document.getElementById('lyricsContainer');
+    let linesEl = [];
+    lyrics.forEach((line, idx)=>{
+      const div = document.createElement('div');
+      div.className = 'line';
+      div.dataset.index = idx;
+      div.textContent = line;
+      container.appendChild(div);
+      linesEl.push(div);
+    });
+
+    // particle field (random dots)
+    const particlesRoot = document.getElementById('particles');
+    for(let i=0;i<26;i++){
+      const d = document.createElement('div');
+      d.className='dot';
+      d.style.left = Math.random()*100 + '%';
+      d.style.top = Math.random()*100 + '%';
+      d.style.width = (4 + Math.random()*12) + 'px';
+      d.style.height = d.style.width;
+      d.style.opacity = 0.08 + Math.random()*0.22;
+      d.style.animationDuration = (6 + Math.random()*8) + 's';
+      particlesRoot.appendChild(d);
+    }
+
+    // === NUEVO: spawn names SMALL en el FONDO (detrás del contenido) ===
+    const floatingRoot = document.getElementById('floatingNames');
+    function spawnFloatingName(){
+      const pick = members[Math.floor(Math.random()*members.length)];
+      const el = document.createElement('div');
+      el.className = 'f-name';
+      el.textContent = pick.name;
+      el.style.color = pick.color;
+      // position anywhere across the viewport (including edges)
+      el.style.left = (Math.random()*100) + '%';
+      el.style.top = (Math.random()*100) + '%';
+      // small random sizes between ~10 and 16 px for subtlety
+      const size = 10 + Math.random()*6;
+      el.style.fontSize = size + 'px';
+      // slight random opacity tint via CSS variable if needed
+      floatingRoot.appendChild(el);
+      // remove after animation ends (5s)
+      setTimeout(()=> {
+        if(el && el.parentNode) el.parentNode.removeChild(el);
+      }, 5200);
+    }
+    // spawn moderately often but not too dense
+    setInterval(()=>{ if(Math.random()>0.25) spawnFloatingName(); }, 450);
+
+    // (leave original nameBurst spawn untouched in case you used it before)
+    // random name bursts (kept as-is from your original, but won't conflict)
+    const nameBurst = document.getElementById('nameBurst');
+    function spawnName(){
+      const pick = members[Math.floor(Math.random()*members.length)];
+      const span = document.createElement('div');
+      span.className='name';
+      span.textContent = pick.name;
+      span.style.color = pick.color;
+      span.style.left = (10 + Math.random()*80) + '%';
+      span.style.top = (10 + Math.random()*80) + '%';
+      span.style.fontSize = (12 + Math.random()*18)+'px';
+      span.style.padding = (6 + Math.random()*6)+'px ' + (8 + Math.random()*8)+'px';
+      span.style.background = 'linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))';
+      nameBurst.appendChild(span);
+      setTimeout(()=>{span.remove();},2400);
+    }
+    setInterval(()=>{ if(Math.random()>0.7) spawnName(); }, 900);
+
+    // Karaoke timing logic
+    const audio = document.getElementById('audio');
+    const playBtn = document.getElementById('playBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const speedRange = document.getElementById('speedRange');
+    const speedVal = document.getElementById('speedVal');
+    const recBtn = document.getElementById('recBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    let current = 0;
+    let playing = false;
+    let timer = null;
+    let speed = 1;
+
+    // Generate default durations per line (based on length)
+    function defaultDuration(line){
+      // base 700ms + 60ms per char, clamped
+      const ms = 700 + Math.min(2200, line.length * 70);
+      return ms;
+    }
+    let durations = lyrics.map(l=>defaultDuration(l));
+
+    // helper to clear highlight
+    function updateHighlight(index){
+      linesEl.forEach((el,i)=>{
+        el.classList.remove('current','prev');
+        if(i===index) el.classList.add('current');
+        else if(i===index-1) el.classList.add('prev');
+      });
+      // scroll center
+      const cur = linesEl[index];
+      if(cur){
+        cur.scrollIntoView({behavior:'smooth',block:'center'});
+      }
+    }
+
+    function playFrom(idx){
+      current = Math.max(0,Math.min(idx, lyrics.length-1));
+      updateHighlight(current);
+      if(timer) clearTimeout(timer);
+      if(playing){
+        const ms = durations[current] / speed;
+        timer = setTimeout(()=>{ advance(); }, ms);
+      }
+    }
+
+    function advance(){
+      current++;
+      if(current >= lyrics.length){
+        stop();
+        return;
+      }
+      updateHighlight(current);
+      if(playing){
+        const ms = durations[current] / speed;
+        timer = setTimeout(()=>{ advance(); }, ms);
+      }
+    }
+
+    function start(){
+      if(!playing){
+        playing = true;
+        playBtn.textContent = 'Pause ⏸';
+        // start audio if present
+        if(audio && audio.readyState>=2){audio.playbackRate = speed; audio.play().catch(()=>{});}
+        playFrom(current);
+      }
+    }
+    function stop(){
+      playing = false;
+      playBtn.textContent = 'Play ▶';
+      if(timer) clearTimeout(timer);
+      if(audio && !audio.paused){audio.pause();audio.currentTime=0;}
+    }
+
+    playBtn.addEventListener('click',()=>{
+      if(!playing) start(); else stop();
+    });
+    prevBtn.addEventListener('click',()=>{ if(current>0){ current--; updateHighlight(current);} });
+    nextBtn.addEventListener('click',()=>{ if(current<lyrics.length-1){ current++; updateHighlight(current);} });
+
+    speedRange.addEventListener('input',()=>{ speed = parseFloat(speedRange.value); speedVal.textContent = speed + 'x'; if(audio) audio.playbackRate = speed; });
+
+    // Record timings feature: user presses Record and then hits Space to mark each next line time
+    let recording = false;
+    let recordTimes = [];
+    recBtn.addEventListener('click',()=>{
+      if(!recording){
+        recording = true;
+        recordTimes = [];
+        recBtn.textContent = 'Recording... (press Space)';
+        document.body.classList.add('recording');
+        // if audio exists, play it from start
+        if(audio){ audio.currentTime = 0; audio.play().catch(()=>{}); audio.playbackRate = speed; }
+        current = 0; updateHighlight(current);
+      } else {
+        // finish
+        recording=false;
+        recBtn.textContent = 'Record timings';
+        document.body.classList.remove('recording');
+        // Convert recordTimes to durations
+        if(recordTimes.length>1){
+          const newDur = [];
+          for(let i=1;i<recordTimes.length;i++) newDur.push(recordTimes[i]-recordTimes[i-1]);
+          // last line: keep prior default
+          newDur.push(defaultDuration(lyrics[lyrics.length-1]));
+          // apply
+          durations = newDur.map(d=>Math.max(200, d));
+          alert('Timings recorded for ' + newDur.length + ' lines. You can now Play.');
+        } else {
+          alert('No taps recorded. Try again.');
+        }
+        if(audio) audio.pause();
+      }
+    });
+
+    // listen for space key while recording
+    window.addEventListener('keydown', (e)=>{
+      if(e.code === 'Space'){
+        if(recording){
+          const t = performance.now();
+          recordTimes.push(t);
+          // advance highlight immediately when tapping
+          if(recordTimes.length>1){
+            current = recordTimes.length-2; // previous index
+            updateHighlight(current+1);
+          }
+          e.preventDefault();
+        } else {
+          // toggle play/pause with space
+          playBtn.click();
+        }
+      }
+    });
+
+    resetBtn.addEventListener('click', ()=>{
+      durations = lyrics.map(l=>defaultDuration(l));
+      alert('Timings reset to auto durations.');
+    });
+
+    // auto start: hide intro after a bit
+    setTimeout(()=>{
+      const intro = document.getElementById('intro');
+      intro.style.transition='opacity 600ms'; intro.style.opacity=0;
+      setTimeout(()=>intro.remove(),700);
+    },1700);
+
+    // init highlight
+    updateHighlight(0);
+
+    // accessibility: click any line to jump
+    linesEl.forEach((el,i)=> el.addEventListener('click', ()=>{ current = i; updateHighlight(current); }));
+
+    // small: if audio plays, try to sync naive by listening to timeupdate (only if durations were recorded based on audio)
+    audio.addEventListener('play', ()=>{
+      // if durations appear user-recorded (we check if total durations length equals lyrics length)
+      // we won't implement perfect audio sync here without timestamps from a lyric file.
+    });
+
+    // Prevent autoplay blocking: user must interact to play sound in many browsers
+    // Everything else is ready to upload to GitHub.
+
+  </script>
+</body>
+</html>
